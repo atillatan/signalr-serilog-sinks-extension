@@ -1,0 +1,111 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+    <title>Example Logs</title>
+    <style type="text/css">
+        .window {
+            border-start-start-radius: 5px;
+            border-start-end-radius: 5px;
+            background: #222;
+            color: #fff;
+            overflow: hidden;
+            position: relative;
+            margin: 0 auto;
+            width: 100%;
+        }
+
+        .window:before {
+            content: ' ';
+            display: block;
+            height: 38px;
+            background: #8a480a;
+        }
+
+        .window:after {
+            content: '. . .';
+            position: absolute;
+            left: 12px;
+            right: 0;
+            top: -8px;
+            font-family: "Times New Roman", Times, serif;
+            font-size: 96px;
+            color: #fff;
+            line-height: 0;
+            letter-spacing: -12px;
+        }
+
+        .terminal {
+            margin: 10px;
+            font-family: consolas;
+            font-size: 12px;
+            color: #22da26;
+            overflow-x: scroll;
+
+        }
+
+        .footer {
+            height: 19px;
+            background-color: rgb(76, 76, 77);
+            bottom: 0;
+            width: 100%;
+            border-end-start-radius: 5px;
+            border-end-end-radius: 5px;
+        }
+    </style>
+    <script type="text/javascript" src="https://cdnjs.cloudflare.com/ajax/libs/microsoft-signalr/7.0.0-preview.1.22109.13/signalr.min.js"></script>
+</head>
+
+<body>   
+    
+    <div class="window">
+        <pre id="terminal" class="terminal"></pre>
+    </div>
+    <div class="footer">
+        &nbsp;<span id="clear" style="font-size: 15px;vertical-align: top;font-weight: normal;font-family: consolas;color:rgb(43, 170, 48)">&#9746; Clear</span>
+    </div>
+    
+
+    <script type="text/javascript">
+
+        var terminal = document.getElementById("terminal");
+        var clear = document.getElementById("clear");
+        clear.addEventListener("click", this.clearTerminal, false);
+
+        function clearTerminal() {
+            terminal.innerHTML = '';
+        }
+
+        document.addEventListener('DOMContentLoaded', function () {
+
+            // Create the connection.
+            var connection = new signalR.HubConnectionBuilder()
+                .withUrl('/log')
+                .configureLogging(signalR.LogLevel.Information)
+                .build();
+       
+            // Create log listener
+            connection.on('logMessage', function (logMessage) {
+                console.log(logMessage);
+                terminal.innerHTML += logMessage + '<br />';
+                window.scrollTo(0, document.body.scrollHeight);
+            });
+
+            // Start the connection
+            connection.start()
+                .then(function () {
+                    console.log('connection started');
+                })
+                .catch(error => {
+                    console.error(error.message);
+                });
+
+            connection.onclose(async () => {
+                await start();
+            });
+        });
+
+    </script>
+</body>
+
+</html>

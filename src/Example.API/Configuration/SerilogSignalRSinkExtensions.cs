@@ -1,36 +1,31 @@
-# signalr-serilog-sinks-extension
 
+using Serilog.Core;
+using Serilog.Events;
+using Microsoft.AspNetCore.SignalR;
+using Serilog.Configuration;
+using Example.API.Controllers;
+using Example.API.Configuration;
 
-
-- Configuration
-
-
-```csharp
-// Program.cs
-...
-builder.Host.UseSerilog();
-builder.Services.AddSignalR(hubOptions => { hubOptions.EnableDetailedErrors = true; });
-...
-
-// Configure the HTTP request pipeline.
-app.UseSerilogSignalRSink(app.Configuration);
-app.UseDefaultFiles(new DefaultFilesOptions { DefaultFileNames = new List<string> { "index.html", "default.html" } });
-app.UseStaticFiles();
-app.UseRouting();
-app.UseEndpoints(endpoints =>
+namespace Example.API.Configuration;
+public static class SerilogSignalRSinkExtensions
 {
-    endpoints.MapControllers();
-    endpoints.MapHub<LogHub>("/log");
-});
-app.Run();
+    public static LoggerConfiguration SignalRLogger(this LoggerSinkConfiguration loggerConfiguration, Func<IHubContext<LogHub>> hubContextProvider, IFormatProvider formatProvider = null!)
+    {
+        return loggerConfiguration.Sink(new SignalRLogger(hubContextProvider));
+    }
 
-```
+    internal static IApplicationBuilder UseSerilogSignalRSink(this IApplicationBuilder app, IConfiguration configuration)
+    {       
 
+        // Re-initialize serilog
+        Log.Logger = new LoggerConfiguration()
+            .ReadFrom.Configuration(configuration, sectionName: "Serilog")
+            .WriteTo.Sink(new SignalRLogger(app.ApplicationServices.GetRequiredService<IHubContext<LogHub>>, "Information"))            
+            .CreateLogger();
 
-- Add Custom Serilog ILogEventSink
-
-```csharp
-// SerilogSignalRSinkExtensions.cs
+        return app;
+    }
+}
 
 public class SignalRLogger : ILogEventSink
 {
@@ -107,7 +102,11 @@ public class SignalRLogger : ILogEventSink
         }
     }
 }
-```
 
+struct LogMsg
+{
+    public string Lvl;
+    public string Text;
+    public string TimeStamp;
+}
 
-- Use wwwroot/log.html to see logs.
